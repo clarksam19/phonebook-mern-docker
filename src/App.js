@@ -1,18 +1,22 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import axios from 'axios';
 import Person from './components/Person';
 import Form from './components/Form';
 import Filter from './components/Filter';
 
 const App = () => {
-  const [ persons, setPersons ] = useState([
-    { name: 'Arto Hellas', number: '040123456' },
-    { name: 'Ada Lovelace', number: '39445323523' },
-    { name: 'Dan Abramov', number: '1243234345' },
-    { name: 'Mary Poppendieck', number: '39236423122' }
-  ]); 
+  const [ persons, setPersons ] = useState([]); 
   const [ newName, setNewName ] = useState('');
   const [ newNumber, setNewNumber ] = useState('');
   const [ filter, setFilter ] = useState('');
+
+  useEffect(() => {
+    axios
+      .get('http://localhost:3001/persons')
+      .then((response) => {
+        setPersons(response.data);
+      });
+  }, []);
 
   const cleanNumber = (stringNumber) => {
     return stringNumber.replace(/[\W_]/g, '');
@@ -70,10 +74,12 @@ const App = () => {
       <h2>Contacts</h2>
       <ul>
         {display.map(person => {
-          <Person 
-            key={person.name + person.number} 
-            person={person}
-          /> 
+          return (
+            <Person 
+              key={person.name + person.number} 
+              person={person}
+            />
+          ) 
         })}
       </ul>
     </div>
