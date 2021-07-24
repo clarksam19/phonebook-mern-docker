@@ -3,12 +3,23 @@ import contactService from './services/contactServices'
 import Person from './components/Person';
 import Form from './components/Form';
 import Filter from './components/Filter';
+import Notification from './components/Notification';
+import utils from './utils/misc';
+import notify from './utils/notify';
 
 const App = () => {
   const [ persons, setPersons ] = useState([]); 
   const [ newName, setNewName ] = useState('');
   const [ newNumber, setNewNumber ] = useState('');
   const [ filter, setFilter ] = useState('');
+  const [ notification, setNotification ] = useState(notify().reset);
+  
+  
+  const {
+    cleanNumber,
+    personsFindName,
+    personsFindNameAndNum
+  } = utils;
 
   useEffect(() => {
     contactService
@@ -16,25 +27,16 @@ const App = () => {
       .then(data => setPersons(data))
   }, []);
 
-  const cleanNumber = (stringNumber) => {
-    return stringNumber.replace(/[\W_]/g, '');
+  const resetNotification = () => {
+    setTimeout(() => {
+      setNotification(notify().reset);
+    }, 5000);
   }
 
-  const cleanName = (name) => {
-    return name.replace(/[\W_]/g, '');
-  }
-
-  const personsFindNameAndNum = (newPerson) => {
-    const cleanNewNumber = cleanNumber(newPerson.number);
-    return persons.findIndex(person => {
-      return cleanName(person.name) === cleanName(newPerson.name) && person.number === cleanNewNumber;
-    });
-  }
-
-  const personsFindName = (newPerson) => {
-    return persons.findIndex(person => {
-      return cleanName(person.name) === cleanName(newPerson.name);
-    });
+  const resetState = () => {
+    setNewName('');
+    setNewNumber('');
+    resetNotification();
   }
 
   const addPerson = (event) => {
@@ -44,8 +46,9 @@ const App = () => {
       name: newName,
       number: cleanNewNumber
     };
-    const nameAndNumIndex = personsFindNameAndNum(newPerson);
-    const nameIndex = personsFindName(newPerson);
+    const nameAndNumIndex = personsFindNameAndNum(persons, newPerson);
+    const nameIndex = personsFindName(persons, newPerson);
+
     if (nameAndNumIndex > -1) {
       alert(`${newPerson.name} is already in the phonebook`);
     } else if (nameIndex > -1) {
@@ -60,18 +63,24 @@ const App = () => {
             setPersons(persons.map(person => {
               return person.id !== id ? person : data;
             }));
-            setNewName('');
-            setNewNumber('');
+            setNotification(notify(newPerson.name).success.update);
+            resetState();
           })
+          .catch(error => {
+            console.log(error);
+            setNotification(notify(newPerson.name).error.update)
+            setNotification(notify().reset);
+        }) 
       }
     } else {
       contactService
         .create(newPerson)
         .then(data => {
-          setPersons(persons.concat(data))
-          setNewName('');
-          setNewNumber('');
-        })  
+          setPersons(persons.concat(data));
+          setNotification(notify(newPerson.name).success.add);
+          resetState();
+        })
+        
     } 
   }
 
@@ -100,6 +109,7 @@ const App = () => {
   return (
     <div>
       <h1>Phonebook</h1>
+      <Notification notification={notification}/>
       <Filter 
         type="text" 
         value={filter} 
@@ -116,11 +126,11 @@ const App = () => {
       />
       <h2>Contacts</h2>
       <ul>
-        {display.map((person, idx) => {
+        {display.map(person => {
           return (
             <Person 
               key={person.name + person.number} 
-              id={idx + 1}
+              id={person.id}
               person={person}
               onClick={deletePerson}
             />
