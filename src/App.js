@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import contactService from './services/contactServices'
 import Person from './components/Person';
 import Form from './components/Form';
 import Filter from './components/Filter';
@@ -11,11 +11,9 @@ const App = () => {
   const [ filter, setFilter ] = useState('');
 
   useEffect(() => {
-    axios
-      .get('http://localhost:3001/persons')
-      .then((response) => {
-        setPersons(response.data);
-      });
+    contactService
+      .getAll()
+      .then(data => setPersons(data))
   }, []);
 
   const cleanNumber = (stringNumber) => {
@@ -26,12 +24,17 @@ const App = () => {
     return name.replace(/[\W_]/g, '');
   }
 
-  const personsContains = (newPerson) => {
+  const personsFindNameAndNum = (newPerson) => {
     const cleanNewNumber = cleanNumber(newPerson.number);
-    console.log(cleanNewNumber);
     return persons.findIndex(person => {
       return cleanName(person.name) === cleanName(newPerson.name) && person.number === cleanNewNumber;
-    }) > -1;
+    });
+  }
+
+  const personsFindName = (newPerson) => {
+    return persons.findIndex(person => {
+      return cleanName(person.name) === cleanName(newPerson.name);
+    });
   }
 
   const addPerson = (event) => {
@@ -41,12 +44,52 @@ const App = () => {
       name: newName,
       number: cleanNewNumber
     };
-    if (personsContains(newPerson)) {
+    const nameAndNumIndex = personsFindNameAndNum(newPerson);
+    const nameIndex = personsFindName(newPerson);
+    if (nameAndNumIndex > -1) {
       alert(`${newPerson.name} is already in the phonebook`);
+    } else if (nameIndex > -1) {
+      const confirm = window.confirm(`${newPerson.name} is already in the phonebook. Update number?`);
+      if (!confirm) {
+        return;
+      } else {
+        const id = persons[`${nameIndex}`].id;
+        contactService
+          .update(newPerson, id)
+          .then(data => {
+            setPersons(persons.map(person => {
+              return person.id !== id ? person : data;
+            }));
+            setNewName('');
+            setNewNumber('');
+          })
+      }
     } else {
-      setPersons(persons.concat(newPerson));
-      setNewName('');
-      setNewNumber('');
+      contactService
+        .create(newPerson)
+        .then(data => {
+          setPersons(persons.concat(data))
+          setNewName('');
+          setNewNumber('');
+        })  
+    } 
+  }
+
+  const deletePerson = (event) => {
+    const name = event.target.parentElement.getAttribute('data-name');
+    const confirm = window.confirm(`Delete ${name}?`);
+    if (!confirm) {
+      return;
+    } else {
+      const id = event.target.parentElement.getAttribute('id');
+      contactService
+        .remove(id)
+        .then(id => {
+          const newPersons = persons.filter(person => {
+            return person.id !== Number(id);
+          });
+          setPersons(newPersons);
+        });
     } 
   }
 
@@ -73,11 +116,13 @@ const App = () => {
       />
       <h2>Contacts</h2>
       <ul>
-        {display.map(person => {
+        {display.map((person, idx) => {
           return (
             <Person 
               key={person.name + person.number} 
+              id={idx + 1}
               person={person}
+              onClick={deletePerson}
             />
           ) 
         })}
