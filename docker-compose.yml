@@ -1,0 +1,31 @@
+version: "3"
+
+services: 
+  client:
+    build: ./client
+    ports:
+      - 3000:3000
+    volumes:
+      - ./client:/usr/src/app/client
+      - node_modules_client:/usr/src/app/client/node_modules
+    depends_on: 
+      - server
+    container_name: pb-client
+  server:
+    build: ./server
+    ports:
+      - 3001:3001
+    volumes:
+      - ./server:/usr/src/app/server
+      - node_modules_server:/usr/src/app/server/node_modules
+    container_name: pb-server
+
+volumes:
+  node_modules_client:
+  node_modules_server:
+
+networks: 
+  default:
+    name: internal
+  
+    
