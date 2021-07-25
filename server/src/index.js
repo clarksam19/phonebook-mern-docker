@@ -1,6 +1,8 @@
 const express = require('express');
 const morgan = require('morgan');
 const cors = require('cors');
+const path = require('path');
+const CLIENT_BUILD_PATH = path.join(__dirname, '../../client/build');
 
 let data = require('./data.json');
 
@@ -16,6 +18,7 @@ const missingData = (contact) => {
 
 const app = express();
 
+app.use(express.static(CLIENT_BUILD_PATH));
 app.use(cors());
 app.use(express.json());
 app.use(morgan(':method :url :status :res[content-length] - :response-time ms :body'));
@@ -83,5 +86,8 @@ app.delete('/api/contacts/:id', (req, res) => {
   }
 });
 
-const PORT = process.env.PORT || 3001;
+app.get('/', (req, res) => {
+  res.sendFile(path.join(CLIENT_BUILD_PATH, 'index.html'));
+})
+const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => `listening on port ${PORT}`);
