@@ -3,7 +3,7 @@ const Person = ({ id, person, onClick }) => {
     <li id={id} data-name={person.name}>
       {person.name} 
       {person.number}
-      <button onClick={onClick}></button>
+      <button onClick={onClick}>Delete</button>
     </li>
   )
 }
